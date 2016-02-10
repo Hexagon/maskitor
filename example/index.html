@@ -1,0 +1,78 @@
+<html>
+<head>
+	<title></title>
+	<script src="../maskitor.js"></script>
+</head>
+<body>
+
+	<!-- Container -->
+	<div id="container"></div>
+
+	<button id="download">Download as mask.pgm</button>
+
+	<!-- Example usage! -->
+	<script>
+	
+		// Overlay loaded, init editor
+		var editor = new Maskitor("container", 640, 480);
+
+		// Load backdrop into image object, i guess it's possible to get 
+		// an image object from a canvas element insted of file.
+		var backdrop = new Image();
+		backdrop.src = "backdrop.jpg";
+		backdrop.onload = function() {
+
+			// setBackdrop expects a Image object
+			editor.setBackdrop(backdrop);
+
+		};
+
+		// Load mask file as binary data
+	    var rawFile = new XMLHttpRequest();
+	    rawFile.open("GET", "mask.pgm", true);
+	    rawFile.responseType = "arraybuffer";
+	    rawFile.overrideMimeType("application/octet-stream;");
+	    rawFile.onload = function (e) {
+
+	    	// setMask expects a binary representation of the mask file
+            editor.setMask(new Uint8Array(rawFile.response));
+
+	    }
+	    rawFile.send(null);
+
+	    // Get pgm-file from editor
+	    var btnDownload = document.getElementById('download');
+	    btnDownload.addEventListener('click', function () {
+
+	    	// Create PGMFile object
+			var pgmFile = new Maskitor.PGMFile(),
+
+			// Populate pgmFile with data from maskContext, save the binary file representation (Arraybuffer) in variable binaryData
+				binaryData = pgmFile.fromContext(editor.maskContext).toBinaryData(),
+
+			// Convert arraybuffer to a typed blob, this is only done to allow us to download the file in the example,
+			// in a real world situation, binaryData could probably be sent directly to the server with ajax.
+				blobData = new Blob([binaryData], {type : 'application/octet-stream'}); // the blob
+
+			// This is a hack to download the data as a file, definitiely not necessary in a real world situation
+			var link = document.createElement('a');
+			link.rel = 'application/octet-stream';
+			link.href = window.URL.createObjectURL(blobData);
+			link.download = "mask.pgm";
+			link.innerHTML = "Image";
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+			
+
+			// Download our blob
+			//window.open(URL.createObjectURL(blobData));
+
+	    });
+
+
+		
+	</script>
+
+</body>
+</html>
