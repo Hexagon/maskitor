@@ -13,8 +13,13 @@
 	<!-- Example usage! -->
 	<script>
 	
-		// Overlay loaded, init editor
-		var editor = new Maskitor("container", 640, 480);
+		// Initialize editor, parameters:
+		//   1. Id of container element in where to place the editor
+		//   2. editor width
+		//   3. editor height
+		//   4. camera resoltion x
+		//   5. camera resoltion y
+		var editor = new Maskitor("container", 640, 480, 1280, 960);
 
 		// Load backdrop into image object, i guess it's possible to get 
 		// an image object from a canvas element insted of file.

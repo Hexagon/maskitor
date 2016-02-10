@@ -207,7 +207,7 @@
 	// ---- Maskitor --------------------------------------------------------------------------
 	//
 
-	function Maskitor (destination, width, height) {
+	function Maskitor (destination, width, height, imageWidth, imageHeight) {
 
 		// Local variables
 		var self = this;
@@ -236,6 +236,10 @@
 
 		this.backdrop = void 0;
 
+		// Image width and height
+		this.imageWidth = imageWidth;
+		this.imageHeight = imageHeight;
+		
 		// Create canvas
 		this.createCanvas();
 		this.resize(width, height);
@@ -359,8 +363,12 @@
 
 		this.canvas.width = width;
 		this.canvas.height = height;
-		this.maskCanvas.width = width;
-		this.maskCanvas.height = height;
+
+		this.maskCanvas.width = this.imageWidth;
+		this.maskCanvas.height = this.imageHeight;
+		this.maskContext.fillStyle = 'rgba(255,255,255,0.005';
+		this.maskContext.fillRect( 0 , 0 , this.maskCanvas.width , this.maskCanvas.height );
+
 		this.maskCanvasStatus.width = width;
 		this.maskCanvasStatus.height = height;
 
@@ -446,14 +454,17 @@
 
 	Maskitor.prototype.applyBrush = function(x, y) {
 
-		this.maskContext.clearRect( x*this.brush, y*this.brush, this.brush, this.brush );
+		var ratioX = this.imageWidth/this.canvas.width,
+			ratioY = this.imageHeight/this.canvas.height;
+
+		this.maskContext.clearRect( x*this.brush*ratioX, y*this.brush*ratioY, this.brush*ratioX, this.brush*ratioY );
 
 		if(this.mask[y][x] === 0 ) {
 			this.maskContext.fillStyle = "rgba(0,0,0,1)";
-			this.maskContext.fillRect( x*this.brush, y*this.brush, this.brush, this.brush );
+			this.maskContext.fillRect( x*this.brush*ratioX, y*this.brush*ratioY, this.brush*ratioX, this.brush*ratioY );
 		} else if(this.mask[y][x] === 1 ) {
 			this.maskContext.fillStyle = "rgba(255,255,255,0.005)";
-			this.maskContext.fillRect( x*this.brush, y*this.brush, this.brush, this.brush );
+			this.maskContext.fillRect( x*this.brush*ratioX, y*this.brush*ratioY, this.brush*ratioX, this.brush*ratioY );
 		}
 	};
 
