@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Maskitor</title>
+	
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<!-- jQuery -->
+	<script src="https://code.jquery.com/jquery-1.12.0.min.js"></script>
+
+	<!-- Bootstrap -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+
+	<!-- Maskitor -->
+	<script src="maskitor.js"></script>
+
+	<style>
+		.container { margin-top: 30px; }
+		#container > canvas { margin-top: 15px;}
+	</style>
+</head>
+<body>
+
+	<!-- Example document -->
+	<div class="container">
+
+		<div class="row">
+			
+			<div class="col-md-12">
+
+				<nav class="navbar navbar-default">
+				  <div class="container-fluid">
+				    <!-- Brand and toggle get grouped for better mobile display -->
+				    <div class="navbar-header">
+
+				      <a class="navbar-brand" href="#">Maskitor</a>
+				    </div>
+
+				    <!-- Collect the nav links, forms, and other content for toggling -->
+				    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+
+				      <ul class="nav navbar-nav navbar-right">
+				        <li><a href="http://github.com/hexagon/maskitor">github.com/hexagon/maskitor</a></li>
+				      </ul>
+				    </div><!-- /.navbar-collapse -->
+				  </div><!-- /.container-fluid -->
+				</nav>
+
+			</div>
+
+		</div>
+
+		<div class="row">
+
+			<div class="col-md-8">
+				
+				<div class="panel panel-default">
+				  <div class="panel-body">
+				  	
+					  	<label class="btn btn-default" for="select">
+					      <input id="select" type="file" style="display:none;">
+					      <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>&nbsp;&nbsp;Select backdrop
+						</label>
+
+						<div class="btn btn-default" id="download" >
+							<span class="glyphicon glyphicon-floppy-save" aria-hidden="true"></span>&nbsp;Download mask
+						</div>
+
+
+					
+					<div id="container"></div></div>
+				</div>
+			</div>
+
+			<div class="col-md-4">
+
+				<div class="panel panel-default">
+				  <div class="panel-body">
+				  </div>
+				  <div class="panel-body">
+				  </div>
+				  <div class="panel-body"></div>
+				</div>
+
+			</div>
+		</div>
+		
+		<br>
+
+	</div>
+
+	<!-- Example usage! -->
+	<script>
+		$( document ).ready(function() {
+		
+			// Initialize editor, parameters:
+			//   1. Id of container element in where to place the editor
+			//   Note: Editor width and height is pulled from container
+			//         Mask width and height is pulled from backdrop
+			var editor = new Maskitor("container");
+
+			// Load backdrop into image object, i guess it's possible to get 
+			// an image object from a canvas element insted of file.
+			var backdrop = new Image();
+			backdrop.src = "example/backdrop.jpg";
+			backdrop.onload = function() {
+
+				// setBackdrop expects a Image object
+				editor.setBackdrop(backdrop);
+
+			};
+
+			// Load mask file as binary data
+		    var rawFile = new XMLHttpRequest();
+		    rawFile.open("GET", "example/mask.pgm", true);
+		    rawFile.responseType = "arraybuffer";
+		    rawFile.overrideMimeType("application/octet-stream;");
+		    rawFile.onload = function (e) {
+
+		    	// setMask expects a binary representation of the mask file
+	            editor.setMask(new Uint8Array(rawFile.response));
+
+		    }
+		    rawFile.send(null);
+
+		    // Get pgm-file from editor
+		    var btnDownload = document.getElementById('download');
+		    btnDownload.addEventListener('click', function () {
+
+		    	// Create PGMFile object
+				var pgmFile = new Maskitor.PGMFile(),
+
+				// Populate pgmFile with data from maskContext, save the binary file representation (Arraybuffer) in variable binaryData
+					binaryData = pgmFile.fromContext(editor.maskContext).toBinaryData(),
+
+				// Convert arraybuffer to a typed blob, this is only done to allow us to download the file in the example,
+				// in a real world situation, binaryData could probably be sent directly to the server with ajax.
+					blobData = new Blob([binaryData], {type : 'application/octet-stream'}); // the blob
+
+				// This is a hack to download the data as a file, definitiely not necessary in a real world situation
+				if (navigator.appVersion.toString().indexOf('.NET') > 0) {
+					window.navigator.msSaveBlob(blobData, "mask.pgm");
+				} else {
+					var link = document.createElement('a');
+					link.rel = 'application/octet-stream';
+					link.href = window.URL.createObjectURL(blobData);
+					link.download = "mask.pgm";
+					link.innerHTML = "Image";
+					document.body.appendChild(link);
+					link.click();
+					document.body.removeChild(link);
+				}
+
+		    });
+
+		    // Change backdrop
+		    var btnSelect = document.getElementById('select');
+		    btnSelect.addEventListener('change', function (e) {
+
+				var file = e.target.files[0];
+				if (!file) {
+					return;
+				}
+
+				var reader = new FileReader();
+				reader.onload = function(e) {
+					var contents = e.target.result;
+					
+					var blob = new Blob( [ contents ], { type: "image/png" } );
+				    var urlCreator = window.URL || window.webkitURL;
+				    var imageUrl = urlCreator.createObjectURL( blob );
+				    var img = new Image();
+				    img.src = imageUrl;
+				    img.onload = function () {
+				    	editor.setBackdrop(img, true);
+				    };
+
+				};
+				reader.readAsArrayBuffer(file);
+
+
+		    });
+		});
+
+		
+	</script>
+
+</body>
+</html>

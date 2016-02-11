@@ -239,6 +239,9 @@
 		this.mask = [];
 		this.brush = 18;
 		this.mouseButtonStatus = [0,0,0,0];
+		this.imageWidth = 800;
+		this.imageHeight = 600;
+
 
 		// Make "new" optional
 		if (!(this instanceof Maskitor)) {
@@ -250,14 +253,6 @@
 			raise("Destination element '" + destination + "' does not exist.");
 		}
 
-		// Check that displayWidth is reasonable
-		if (!(!isNaN(width) && width > 0)) {
-			raise("supplied width is invalid.");
-		}
-		if (!(!isNaN(height) && height > 0)) {
-			raise("supplied height is invalid.");
-		}
-
 		this.backdrop = void 0;
 
 		// Image width and height
@@ -266,7 +261,7 @@
 		
 		// Create canvas
 		this.createCanvas();
-		this.resize(width, height);
+		this.resize();
 
 		// Hook up events
 		document.addEventListener('mousedown', function(e) { self.onMouseDown(e, self) }, false);
@@ -288,7 +283,7 @@
 		this.imageWidth = this.backdrop.width;
 		this.imageHeight = this.backdrop.height;
 
-		this.resize(this.canvas.width, this.canvas.height);
+		this.resize();
 
 		this.render();
 
@@ -406,17 +401,18 @@
 		return e.preventDefault();
 	};
 
-	Maskitor.prototype.resize = function(width, height) {
+	Maskitor.prototype.resize = function() {
 
-		this.canvas.width = width;
-		this.canvas.height = height;
+	    // Fit canvas to container
+	    this.canvas.style.width = '100%';
+
+	    // Set canvas width and height parameters
+		this.canvas.width = this.maskCanvasStatus.width = this.canvas.offsetWidth;
+		this.canvas.height = this.maskCanvasStatus.height = this.canvas.offsetWidth * (this.imageHeight / this.imageWidth);
 
 		this.maskCanvas.width = this.imageWidth;
 		this.maskCanvas.height = this.imageHeight;
 		this.maskContext.clearRect( 0 , 0 , this.maskCanvas.width , this.maskCanvas.height );
-
-		this.maskCanvasStatus.width = width;
-		this.maskCanvasStatus.height = height;
 
 	};
 
