@@ -279,7 +279,13 @@
 			raise("Supplied backdrop is invalid, must be an actual html image element.");
 		}
 
+		this.imageWidth = this.backdrop.width;
+		this.imageHeight = this.backdrop.height;
+
+		this.resize(this.canvas.width, this.canvas.height);
+
 		this.render();
+
 
 	};
 
