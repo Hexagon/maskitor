@@ -237,7 +237,7 @@
 		var self = this;
 
 		this.mask = [];
-		this.brush = 30;
+		this.brush = 18;
 		this.mouseButtonStatus = [0,0,0,0];
 
 		// Make "new" optional
@@ -316,6 +316,8 @@
 		this.mouseStartX = x;
 		this.mouseStartY = y;
 
+		this.onMouseMove(e, self);
+
 	};
 
 	Maskitor.prototype.onMouseUp = function (e, self) {
@@ -344,12 +346,32 @@
 			y = e.clientY - rect.top;
 			self = this;
 
-		if (this.mouseButtonStatus[0] !== 1 && this.mouseButtonStatus[2] !== 1) {
-			return false;
+		// Check status of shift now
+		this.maskContextStatus.clearRect(0,0,this.canvas.width, this.canvas.height);
+		if(e.shiftKey) {
+
+		} else {
+			//  Draw dashed ring inducating mouse position		
+			this.maskContextStatus.save();
+
+				this.maskContextStatus.strokeStyle = "rgba(0,0,0,1)";
+				this.maskContextStatus.beginPath();
+				this.maskContextStatus.arc(x,y,this.brush,0,2*Math.PI);
+				this.maskContextStatus.setLineDash([5, 5]);
+				this.maskContextStatus.stroke();
+
+				this.maskContextStatus.strokeStyle = "rgba(255,255,255,1)";
+				this.maskContextStatus.beginPath();
+				this.maskContextStatus.arc(x,y,this.brush,+5,2*Math.PI+5);
+				this.maskContextStatus.setLineDash([5, 5]);
+				this.maskContextStatus.stroke();
+			this.maskContextStatus.restore();
+			this.render();
 		}
+			
 
+		// Check status of shift key when mousebutton was pressed
 		if (this.shiftPressed) {
-
 
 			// Left click
 			if (this.mouseButtonStatus[0] == 1) {
@@ -372,8 +394,6 @@
 				this.applyBrush(x, y, 1);
 
 			}
-
-			
 
 		}
 
@@ -410,6 +430,9 @@
 
 		this.maskCanvasStatus = document.createElement('canvas');
 		this.maskContextStatus = this.maskCanvasStatus.getContext('2d');
+
+		// Set cursor of main canvas
+		this.canvas.style.cursor = 'crosshair';
 
 		this.container.appendChild(this.canvas);
 
@@ -479,7 +502,7 @@
 			if (type === 1) this.maskContext.globalCompositeOperation = "destination-out";
 			this.maskContext.fillStyle = "rgba(0,0,0,1)";
 			this.maskContext.beginPath();
-			this.maskContext.arc(xPos,yPos,this.brush/ratioX,0,2*Math.PI);
+			this.maskContext.arc(xPos,yPos,this.brush*ratioX,0,2*Math.PI);
 			this.maskContext.fill();
 		this.maskContext.restore();
 		
@@ -491,11 +514,12 @@
 		if ( typeof this.backdrop !== "undefined" ) {
 			this.context.drawImage(this.backdrop, 0, 0, this.canvas.width, this.canvas.height);		
 		}
-		this.context.drawImage(this.maskCanvasStatus, 0, 0, this.canvas.width, this.canvas.height);
 		this.context.save();
 			this.context.globalAlpha = 0.8;
 			this.context.drawImage(this.maskCanvas, 0, 0, this.canvas.width, this.canvas.height);
 		this.context.restore();
+
+		this.context.drawImage(this.maskCanvasStatus, 0, 0, this.canvas.width, this.canvas.height);
 
 	};
 
