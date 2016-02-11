@@ -8,7 +8,12 @@
 	<!-- Container -->
 	<div id="container"></div>
 
-	<button id="download">Download as mask.pgm</button>
+	<br>
+
+	Select a local file to change background:<br>
+	<input type="file" id="select" value="Select backdrop"><br><br>
+	Download mask in pgm-format<br>
+	<button id="download">Get mask.pgm</button>
 
 	<!-- Example usage! -->
 	<script>
@@ -19,7 +24,7 @@
 		//   3. editor height
 		//   4. camera resoltion x
 		//   5. camera resoltion y
-		var editor = new Maskitor("container", 640, 480, 1280, 960);
+		var editor = new Maskitor("container", 800, 600, 1280, 960);
 
 		// Load backdrop into image object, i guess it's possible to get 
 		// an image object from a canvas element insted of file.
@@ -75,6 +80,33 @@
 
 	    });
 
+	    // Change backdrop
+	    var btnSelect = document.getElementById('select');
+	    btnSelect.addEventListener('change', function (e) {
+
+			var file = e.target.files[0];
+			if (!file) {
+				return;
+			}
+
+			var reader = new FileReader();
+			reader.onload = function(e) {
+				var contents = e.target.result;
+				
+				var blob = new Blob( [ contents ], { type: "image/png" } );
+			    var urlCreator = window.URL || window.webkitURL;
+			    var imageUrl = urlCreator.createObjectURL( blob );
+			    var img = new Image();
+			    img.src = imageUrl;
+			    img.onload = function () {
+			    	editor.setBackdrop(img, true);
+			    };
+
+			};
+			reader.readAsArrayBuffer(file);
+
+
+	    });
 
 		
 	</script>
