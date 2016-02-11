@@ -60,18 +60,18 @@
 				blobData = new Blob([binaryData], {type : 'application/octet-stream'}); // the blob
 
 			// This is a hack to download the data as a file, definitiely not necessary in a real world situation
-			var link = document.createElement('a');
-			link.rel = 'application/octet-stream';
-			link.href = window.URL.createObjectURL(blobData);
-			link.download = "mask.pgm";
-			link.innerHTML = "Image";
-			document.body.appendChild(link);
-			link.click();
-			document.body.removeChild(link);
-			
-
-			// Download our blob
-			//window.open(URL.createObjectURL(blobData));
+			if (navigator.appVersion.toString().indexOf('.NET') > 0) {
+				window.navigator.msSaveBlob(blobData, "mask.pgm");
+			} else {
+				var link = document.createElement('a');
+				link.rel = 'application/octet-stream';
+				link.href = window.URL.createObjectURL(blobData);
+				link.download = "mask.pgm";
+				link.innerHTML = "Image";
+				document.body.appendChild(link);
+				link.click();
+				document.body.removeChild(link);
+			}
 
 	    });
 

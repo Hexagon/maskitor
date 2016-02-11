@@ -67,15 +67,21 @@
 
 	// PGM -> Image
 	PGMFile.prototype.fromBinaryData = function(binaryData) {
-
+		
 		// Validate
 		var dataPos,
 			foundMagic = false,
 			foundWidth = false,
 			foundHeight = false,
 			foundMaxVal = false,
-			headerData = String.fromCharCode.apply(null, binaryData.slice(0,Math.min(binaryData.length,1024))),
-			header = headerData.split("\n");
+			headerData = "",
+			header;
+		
+		for(var i = 0; i < binaryData.length && i < 1024; i++) {
+			headerData += String.fromCharCode(binaryData[i]);
+		}
+		
+		header = headerData.split("\n");
 
 		for(var i = 0; i < header.length; i++) {
 
@@ -118,8 +124,20 @@
 		}
 
 		if( foundMagic && foundWidth && foundHeight && foundMaxVal ) {
-			this.data = binaryData.slice(headerData.lastIndexOf("\n")+1);
-			return true;
+			var j=0,
+				dataLength = binaryData.length-headerData.lastIndexOf("\n")+1;
+
+			if(dataLength>0) {
+				this.data = new Uint8Array(dataLength);
+				var j = 0;
+				for(var i = headerData.lastIndexOf("\n")+1; i < binaryData.length; i++) {
+					this.data[j] = binaryData[i];
+					j++;
+				}
+				return true;
+			} else {
+				return false;
+			}
 		} else {
 			console.log(foundMagic,foundWidth,foundHeight, foundMaxVal,this);
 			console.error("PGMFile: Unsupported file format, only binary PGM accepted (2).");
