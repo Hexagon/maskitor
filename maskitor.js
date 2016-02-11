@@ -162,7 +162,14 @@
 		for (var x = 0; x < this.width; x++) {
 			for (var y = 0; y < this.height; y++) {
 				var offset = ((x*this.height*4)+(y*4));
-				this.data.push(Math.round((pix[offset] + pix[offset+1] + pix[offset+2])/3));	
+
+				// Treat fully transparent pixels as white
+				if(pix[offset+3]==0) {
+					this.data.push(255);
+				} else {
+					this.data.push(Math.round((pix[offset] + pix[offset+1] + pix[offset+2])/3));		
+				}
+
 			}			
 		}
 
@@ -207,8 +214,7 @@
 				raw.data[offset] = this.data[offsetData];
 				raw.data[offset+1] = this.data[offsetData];
 				raw.data[offset+2] = this.data[offsetData];
-				// Prevent 0 in alphachannel as context drops color information when a pizel is completely transparent (!?)
-				raw.data[offset+3] = Math.min(256-this.data[offsetData],255); 
+				raw.data[offset+3] = 255-this.data[offsetData];
 				offsetData++;
 			}			
 		}
@@ -231,7 +237,7 @@
 		var self = this;
 
 		this.mask = [];
-		this.brush = 10;
+		this.brush = 30;
 		this.mouseButtonStatus = [0,0,0,0];
 
 		// Make "new" optional
@@ -302,8 +308,8 @@
 	Maskitor.prototype.onMouseDown = function (e, self) {
 
 		var rect = self.canvas.getBoundingClientRect(),
-			x = Math.min(Math.max(0,Math.ceil((e.clientX - rect.left-this.brush)/this.brush)),this.cols),
-			y = Math.min(Math.max(0,Math.ceil((e.clientY - rect.top-this.brush)/this.brush)),this.rows);
+			x = e.clientX - rect.left,
+			y = e.clientY - rect.top;
 
 		this.mouseButtonStatus[e.button] = 1;
 		this.shiftPressed = e.shiftKey;
@@ -315,8 +321,8 @@
 	Maskitor.prototype.onMouseUp = function (e, self) {
 
 	    var rect = self.canvas.getBoundingClientRect(),
-			x = Math.min(Math.max(0,Math.ceil((e.clientX - rect.left-this.brush)/this.brush)),this.cols),
-			y = Math.min(Math.max(0,Math.ceil((e.clientY - rect.top-this.brush)/this.brush)),this.rows);
+			x = e.clientX - rect.left,
+			y = e.clientY - rect.top;
 
 		this.mouseButtonStatus[e.button] = 0;
 		this.maskContextStatus.clearRect( 0, 0, this.canvas.width, this.canvas.height );
@@ -334,8 +340,8 @@
 	Maskitor.prototype.onMouseMove = function (e, self) {
 
 	    var rect = self.canvas.getBoundingClientRect(),
-			x = Math.min(Math.max(0,Math.ceil((e.clientX - rect.left-this.brush)/this.brush)),this.cols),
-			y = Math.min(Math.max(0,Math.ceil((e.clientY - rect.top-this.brush)/this.brush)),this.rows);
+			x = e.clientX - rect.left,
+			y = e.clientY - rect.top;
 			self = this;
 
 		if (this.mouseButtonStatus[0] !== 1 && this.mouseButtonStatus[2] !== 1) {
@@ -359,15 +365,15 @@
 
 			// Left click
 			if (this.mouseButtonStatus[0] == 1) {
-				this.mask[y][x] = 0;
+				this.applyBrush(x, y, 0);
 
 			// Right click
 			} else if (this.mouseButtonStatus[2] == 1) {
-				this.mask[y][x] = 1;
+				this.applyBrush(x, y, 1);
 
 			}
 
-			this.applyBrush(x, y);
+			
 
 		}
 
@@ -382,30 +388,15 @@
 
 	Maskitor.prototype.resize = function(width, height) {
 
-		this.rows = Math.ceil(height/this.brush)-1,
-		this.cols = Math.ceil(width/this.brush)-1;
-
 		this.canvas.width = width;
 		this.canvas.height = height;
 
 		this.maskCanvas.width = this.imageWidth;
 		this.maskCanvas.height = this.imageHeight;
-		this.maskContext.fillStyle = 'rgba(255,255,255,0.005';
-		this.maskContext.fillRect( 0 , 0 , this.maskCanvas.width , this.maskCanvas.height );
+		this.maskContext.clearRect( 0 , 0 , this.maskCanvas.width , this.maskCanvas.height );
 
 		this.maskCanvasStatus.width = width;
 		this.maskCanvasStatus.height = height;
-
-		this.mask = [];
-
-		for(var i = 0; i <= this.rows; i++) {
-			var row = [];
-			for(var j = 0; j <= this.cols; j++) {
-				row[j] = 1;
-			}
-			this.mask[i] = row;
-		}
-
 
 	};
 
@@ -440,20 +431,19 @@
 
 		this.maskContextStatus.clearRect( 0, 0, this.canvas.width, this.canvas.height );
 
-		for(var x = x1; x <= x2; x++) {
-			for(var y = y1; y <= y2; y++) {
-				if(type === 0 ) {
-					this.maskContextStatus.fillStyle = "rgba(0,0,0,0.6)";
-				} else {
-					this.maskContextStatus.fillStyle = "rgba(255,255,255,0.6)";
-				}
-				this.maskContextStatus.fillRect( x*this.brush, y*this.brush, this.brush, this.brush );
-			}
+		if(type === 0 ) {
+			this.maskContextStatus.fillStyle = "rgba(0,0,0,0.6)";
+		} else {
+			this.maskContextStatus.fillStyle = "rgba(255,255,255,0.6)";
 		}
+		this.maskContextStatus.fillRect( x1, y1, x2-x1, y2-y1 );
 
 	};
 
 	Maskitor.prototype.transferBrushArea = function(x1, y1, x2, y2, type) {
+
+		var ratioX = this.imageWidth/this.canvas.width,
+			ratioY = this.imageHeight/this.canvas.height;
 
 		if ( x2 < x1 ) {
 			var tmp = x1;
@@ -467,29 +457,32 @@
 			y2 = tmp;
 		}
 
-		for(var x = x1; x <= x2; x++) {
-			for(var y = y1; y <= y2; y++) {
-				this.mask[y][x] = type;
-				this.applyBrush(x,y);
-			}
+		if (type === 0 ) {
+			this.maskContext.fillStyle = (type === 0 ) ? "rgba(0,0,0,1)" : "rgba(255,255,255,0.6)";
+			this.maskContext.fillRect( x1 * ratioX , y1 * ratioY, (x2-x1) * ratioX, (y2-y1) * ratioY );	
+		} else {
+			this.maskContext.clearRect( x1 * ratioX , y1 * ratioY, (x2-x1) * ratioX, (y2-y1) * ratioY );	
 		}
+
 
 	};
 
-	Maskitor.prototype.applyBrush = function(x, y) {
+	Maskitor.prototype.applyBrush = function(x, y, type) {
 
 		var ratioX = this.imageWidth/this.canvas.width,
-			ratioY = this.imageHeight/this.canvas.height;
+			ratioY = this.imageHeight/this.canvas.height,
+			xPos = (x)*ratioX,
+			yPos = (y)*ratioY;
 
-		this.maskContext.clearRect( x*this.brush*ratioX, y*this.brush*ratioY, this.brush*ratioX, this.brush*ratioY );
-
-		if(this.mask[y][x] === 0 ) {
+	
+		this.maskContext.save();
+			if (type === 1) this.maskContext.globalCompositeOperation = "destination-out";
 			this.maskContext.fillStyle = "rgba(0,0,0,1)";
-			this.maskContext.fillRect( x*this.brush*ratioX, y*this.brush*ratioY, this.brush*ratioX, this.brush*ratioY );
-		} else if(this.mask[y][x] === 1 ) {
-			this.maskContext.fillStyle = "rgba(255,255,255,0.005)";
-			this.maskContext.fillRect( x*this.brush*ratioX, y*this.brush*ratioY, this.brush*ratioX, this.brush*ratioY );
-		}
+			this.maskContext.beginPath();
+			this.maskContext.arc(xPos,yPos,this.brush/ratioX,0,2*Math.PI);
+			this.maskContext.fill();
+		this.maskContext.restore();
+		
 	};
 
 
